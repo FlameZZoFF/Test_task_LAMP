@@ -1,0 +1,170 @@
+
+---
+- name: Install and configure LAMP
+  hosts: linux_servers_test
+  become: yes
+
+
+  vars:
+    wordpress_url: https://wordpress.org/latest.tar.gz
+    github_url: https://github.com/FlameZZoFF/Test_task_LAMP.git
+   
+
+  tasks:
+  - name: Install instruments
+    yum: name={{ item }} state=installed
+    with_items:                                              #Можно через when: ansible_os_release сделать обработчики для нужных дистрибутивов
+          - wget
+          - sendmail
+          - git        
+
+
+
+  - debug:
+      msg: "Succes"
+
+
+  - name: Install LAMP
+    yum: name={{ item }} state=installed
+    with_items:
+          - httpd
+          - mysql-server
+          - php
+          - php-mysqlnd
+          - nginx
+          - mysql
+  
+  
+
+  - debug:
+      msg: "Succes"
+
+  
+
+  - name: Download Wordpress
+    get_url: url={{ wordpress_url }} dest=/var/www/html/
+
+ 
+  
+  - debug:
+      msg: "Succes"
+
+     
+  
+  - name: Unzip Wordpress
+    unarchive:
+      src: /var/www/html/wordpress-6.4.1.tar.gz
+      dest: /var/www/html
+      copy: no
+  
+  
+  - debug:
+      msg: "Succes"
+
+
+
+  - name: Copy Wordpress
+    shell: "mv -f /var/www/html/wordpress/* /var/www/html"
+ 
+ 
+  
+  - debug:
+      msg: "Succes"
+
+
+
+
+  - name: Clone git repo with cfg
+    git:
+      repo: "{{ github_url }}"
+      dest: /etc/githubrepos
+  
+  
+
+  - debug:
+      msg: "Succes"
+  
+
+
+  - name: Install apache config
+    copy:
+      src: /etc/githubrepos/httpd.conf
+      dest: /etc/httpd/conf/httpd.conf
+      remote_src: yes
+
+ 
+  
+  - debug:
+      msg: "Succes"
+
+
+  
+  - name: Install nginx config
+    copy:
+      src: /etc/githubrepos/nginx.conf
+      dest: /etc/nginx/nginx.conf
+      remote_src: yes
+ 
+
+                
+  - debug:
+      msg: "Succes"
+
+
+
+
+  - name: Start LAMP services
+    service: name={{ item }} state=started enabled=yes
+    with_items:
+          - httpd 
+          - mysqld
+          - nginx
+
+  
+
+  - debug:
+      msg: "Succes"
+
+  
+
+
+  - name: Add ports to firewall
+    firewalld:
+       port: "{{ item }}/tcp"
+       state: enabled
+       permanent: true
+    with_items:
+          - 80
+          - 81
+    
+  
+
+  - debug:
+      msg: "Succes"
+
+
+  
+  - name: Restart firewall
+    service: name=firewalld state=restarted enabled=true
+
+
+
+  - debug:
+      msg: "Succes"
+ 
+
+
+  - name: Create DB for worpdess
+    shell: "mysql -u root -e 'CREATE DATABASE wordpress'"
+    tags:
+       - sql
+  
+
+  - debug:
+      msg: "Complited"
+
+
+
+  - name: message to email
+    shell: "sendmail -f from@yandex.ru -m 'Server is ready!' -t to@gmail.com -s smtp.yandex.ru:587 -xu from@yandex.ru -xp password"
+

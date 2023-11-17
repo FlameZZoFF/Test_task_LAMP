@@ -1,0 +1,96 @@
+#!/bin/bash
+
+#Скрипт протестирован на centos 9
+
+wp_url=https://wordpress.org/latest.tar.gz
+config_url=https://github.com/FlameZZoFF/Test_task_LAMP.git 
+
+echo "Install instrument..."
+yum -y install git wget sendmail 
+if [ $? -eq 0 ]
+then
+  continue
+else
+  sleep 60
+  bash ./LAMP_install
+  break
+fi
+
+echo "LAMP install start..."
+#Здесь можно подстроиться под конкретный пакетный менеджер с помощью else if,или switch case
+yum -y install httpd php mysql-server nginx php-mysqlnd 
+if [ $? -eq 0 ]
+then
+  continue
+else
+  sleep 60
+  bash ./LAMP_install
+  break
+fi
+
+echo "LAMP install end..."
+
+sleep 1
+
+echo "Wordpress install start..."  
+
+cd /var/www/html
+wget -O wp $wp_url
+if [ $? -eq 0 ]
+then
+  continue
+else
+  sleep 60
+  bash ./LAMP_install
+  break
+fi 
+tar xvzf wp
+mv /var/www/html/wordpress/* /var/www/html
+rm -Rf /var/www/html/wordpress
+rm -f /var/www/html/wp
+echo "Wordpress install end..."
+
+sleep 1
+
+echo "Configure mysql..."
+systemctl start mysqld
+mysql -u root -e "CREATE DATABASE wordpress"
+
+sleep 1
+
+echo "Configure apache..."
+
+cd /etc/httpd/conf
+git clone $config_url
+if [ $? -eq 0 ]
+then
+  continue
+else
+  sleep 60
+  bash ./LAMP_install
+  break
+fi
+mv -f Test_task_LAMP/httpd.conf /etc/httpd/conf/httpd.conf
+rm -Rf Test_task_LAMP
+systemctl start httpd
+setsebool -P httpd_can_network_connect 1
+
+sleep 1
+
+echo "Configure nginx" 
+cd /etc/nginx
+git clone $config_url 
+mv -f Test_task_LAMP/nginx.conf /etc/nginx/nginx.conf
+rm -Rf Test_task_LAMP
+systemctl start nginx
+sleep 1
+
+echo "Opening ports 81,80..."
+#Так же можно проверить какой фаерволл установлен и сделать обработчики для него else if или switch case
+firewall-cmd --add-port=80/tcp --permanent
+firewall-cmd --add-port=81/tcp --permanent
+systemctl restart firewalld
+
+sendmail -f from@yandex.ru -m "Server is ready!" -t to@gmail.com -s smtp.yandex.ru:587 -xu from@yandex.ru -xp password #Вообще было бы хорошо настроить SMTP сервер но я считаю что это уже надо делать в отдельном скрипте
+
+echo "Script complited" 

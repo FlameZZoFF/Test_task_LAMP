@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  
+  
+  nginx:
+    image: nginx:latest
+    ports:
+    - 81:81  
+    volumes:
+    - ./configs/nginx:/etc/nginx/conf.d    
+
+
+
+  apache:
+    build:
+      context: ./apachephp
+      dockerfile: Dockerfile
+    ports:
+    - 80:80
+    volumes:
+    - ./apache:/var/www/html
+ 
+
+
+  mariad:
+    image: mariadb:latest
+    ports:
+    -  3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: Qq1234567
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    volumes:
+    - ./DB/mariadb:/var/lib/mysql
